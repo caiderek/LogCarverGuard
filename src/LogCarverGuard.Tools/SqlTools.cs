@@ -32,7 +32,8 @@ public sealed class SqlTools(
         "are blocked before they ever reach the database - if blocked, the reason is returned so " +
         "you can adjust and retry. A batch containing INSERT/UPDATE/DELETE runs in one transaction " +
         "that is rolled back if any statement fails; DDL, TRUNCATE and EXEC run as they are and are " +
-        "not rolled back as part of a batch.")]
+        "not rolled back as part of a batch. When the server runs in read-only mode only queries " +
+        "are allowed and every other statement is blocked with a reason.")]
     public async Task<string> ExecuteSql(
         [Description("The SQL statement to execute.")] string sql,
         CancellationToken ct)
