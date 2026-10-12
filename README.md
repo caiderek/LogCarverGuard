@@ -1,5 +1,3 @@
-<!-- mcp-name: io.github.caiderek/logcarverguard -->
-
 # LogCarverGuard
 
 **English | [繁體中文](README.zh-TW.md)**
