@@ -31,7 +31,7 @@ AI agent --(MCP, API key)--> LogCarverGuard proxy --(用呼叫者自己的登入
 
 ## 本機模式
 
-在你自己的機器上執行,由 AI 工具透過 stdio 啟動。不需要伺服器、不需要 Docker、不需要 API key。
+在你自己的機器上執行,由 AI 工具透過 stdio 啟動。不需要伺服器、不需要 Docker、不需要 API key。設定只讀取環境變數(不讀 `appsettings.json` 或命令列參數)。在 Windows 與整合式驗證下測試過。
 
 ```
 dotnet tool install -g LogCarverGuard.Local
@@ -47,7 +47,7 @@ claude mcp add logcarverguard --env LOGCARVERGUARD_CONNECTION_STRING="Server=loc
 | `LOGCARVERGUARD_AUDIT_DB_PATH` | 稽核紀錄 SQLite 路徑 | 本機應用程式資料夾下的 `LogCarverGuard/audit.db` |
 | `LOGCARVERGUARD_TRUNCATE_ALLOWLIST`、`LOGCARVERGUARD_EXEC_WHITELIST`、`LOGCARVERGUARD_ALTER_DROP_COLUMN_ALLOWLIST` | 跟中央服務相同的白名單 | 空(全部擋) |
 
-**唯讀模式**只放行 `SELECT`(不含 `INTO`),以及 `SET`、`DECLARE`、`PRINT`。其他一律擋下並說明原因,包含即使在白名單上的 `EXEC`,以及 `NEXT VALUE FOR`。登入帳號本身也請只給它需要的權限,guard 是第二道防線,不是第一道。
+**唯讀模式**只放行 `SELECT`(不含 `INTO`),以及 `SET`、`DECLARE`、`PRINT`。其他一律擋下並說明原因,包含即使在白名單上的 `EXEC`、`NEXT VALUE FOR`,以及遠端或檔案來源 `OPENQUERY`、`OPENROWSET`、`OPENDATASOURCE`(它們可以在別的伺服器上執行寫入)。唯讀模式沒有涵蓋的:`SELECT` 呼叫有副作用的 CLR 或擴充預存程序函式、執行很久或很耗資源的查詢,以及鎖定。登入帳號本身也請只給它需要的權限,guard 是第二道防線,不是第一道。
 
 **本機模式是什麼、不是什麼。** 它是防止 agent 手滑做出破壞性操作的護欄,**不是安全邊界**:
 
@@ -129,7 +129,7 @@ claude mcp add logcarverguard --env LOGCARVERGUARD_CONNECTION_STRING="Server=loc
 
 ## 已知限制
 
-- 只支援 SQL Server,目前只支援 Linux。
+- 只支援 SQL Server。中央服務跑在 Linux(Docker);本機模式在 Windows 與整合式驗證下測試過。
 - 只管得到透過這個 MCP 連線送出的 SQL。如果 agent 還有別的工具(讀寫檔案、呼叫 API、雲端主控台),proxy 看不到也擋不了。
 - API key 只是一把固定的密鑰,沒有 mTLS、沒有裝置綁定、沒有短期 token。
 - 沒有讀取時遮蔽(mask-on-read):帳號能 `SELECT` 到的敏感資料,agent 一樣讀得到。

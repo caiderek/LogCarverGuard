@@ -33,7 +33,7 @@ This list is deliberately narrow. It is not "everything an AI could break": `DRO
 
 ## Local mode
 
-Runs on your own machine, started by your AI tool over stdio. No server, no Docker, no API keys.
+Runs on your own machine, started by your AI tool over stdio. No server, no Docker, no API keys. Settings come only from environment variables (not from `appsettings.json` or the command line). Tested on Windows with integrated authentication.
 
 ```
 dotnet tool install -g LogCarverGuard.Local
@@ -49,7 +49,7 @@ Or run it without installing, through `dnx` (end the command with `-- dotnet dnx
 | `LOGCARVERGUARD_AUDIT_DB_PATH` | Audit log SQLite file | `LogCarverGuard/audit.db` under your local application data folder |
 | `LOGCARVERGUARD_TRUNCATE_ALLOWLIST`, `LOGCARVERGUARD_EXEC_WHITELIST`, `LOGCARVERGUARD_ALTER_DROP_COLUMN_ALLOWLIST` | Same allow-lists as the central service | empty (all blocked) |
 
-**Read-only mode** lets `SELECT` (without `INTO`) through, plus `SET`, `DECLARE` and `PRINT`. Everything else is blocked with a reason, including `EXEC` even when it is allow-listed and `NEXT VALUE FOR`. Also give the login only the permissions it needs; the guard is a second layer, not the first.
+**Read-only mode** lets `SELECT` (without `INTO`) through, plus `SET`, `DECLARE` and `PRINT`. Everything else is blocked with a reason, including `EXEC` even when it is allow-listed, `NEXT VALUE FOR`, and the remote or file sources `OPENQUERY`, `OPENROWSET` and `OPENDATASOURCE` (they can run a write on another server). What read-only mode does not cover: a `SELECT` that calls a CLR or extended-procedure function with side effects, long-running or expensive queries, and locks. Also give the login only the permissions it needs; the guard is a second layer, not the first.
 
 **What local mode is, and is not.** It is a guardrail against an agent doing something destructive by accident. It is not a security boundary:
 
@@ -131,7 +131,7 @@ Set `Initial Catalog` in the connection string to the database the agent should 
 
 ## Known limits
 
-- SQL Server only, and Linux only for now.
+- SQL Server only. The central service runs on Linux (Docker); local mode was tested on Windows with integrated authentication.
 - It only governs SQL sent through this MCP connection. If the agent has other tools (files, APIs, cloud consoles), this proxy cannot see or stop those.
 - The API key is a single static secret: no mTLS, no device binding, no short-lived tokens.
 - No mask-on-read: if an account can `SELECT` sensitive data, the agent can read it.

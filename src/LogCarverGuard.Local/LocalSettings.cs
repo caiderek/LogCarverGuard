@@ -15,14 +15,21 @@ public sealed record LocalSettings(string ConnectionString, string AuditDbPath, 
                 $"{ConnectionStringKey} is not set (or {ConnectionStringKey}_FILE pointing at a file containing it). " +
                 "Example: Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true");
 
-        string auditDbPath = configuration["LOGCARVERGUARD_AUDIT_DB_PATH"]
-            ?? Path.Combine(
+        // A blank value must not become "Data Source=" (a throw-away temporary
+        // database that silently loses the audit log), so blank means default.
+        string? auditRaw = configuration["LOGCARVERGUARD_AUDIT_DB_PATH"];
+        string auditDbPath = string.IsNullOrWhiteSpace(auditRaw)
+            ? Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-                "LogCarverGuard", "audit.db");
+                "LogCarverGuard", "audit.db")
+            : auditRaw.Trim();
 
         bool readOnly = false;
+        // Present-but-blank (for example an unexpanded variable in a client
+        // config) is an error, not "off": the safe reading of an unclear
+        // read-only setting is to refuse to start.
         string? readOnlyRaw = configuration["LOGCARVERGUARD_READ_ONLY"];
-        if (!string.IsNullOrWhiteSpace(readOnlyRaw) && !bool.TryParse(readOnlyRaw, out readOnly))
+        if (readOnlyRaw is not null && !bool.TryParse(readOnlyRaw.Trim(), out readOnly))
             throw new InvalidOperationException(
                 $"LOGCARVERGUARD_READ_ONLY must be true or false (got '{readOnlyRaw}').");
 

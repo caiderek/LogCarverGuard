@@ -82,8 +82,16 @@ public static class SqlStatementGuard
         // A SELECT that advances a sequence changes state, so it is not a query here.
         var sequenceUse = new NextValueForFinder();
         script.Accept(sequenceUse);
-        return sequenceUse.Found
-            ? "唯讀模式(read-only mode)不允許 NEXT VALUE FOR,它會改變序列的目前值"
+        if (sequenceUse.Found)
+            return "唯讀模式(read-only mode)不允許 NEXT VALUE FOR,它會改變序列的目前值";
+
+        // OPENQUERY / OPENROWSET / OPENDATASOURCE hand a command string to
+        // another server (or read a file), and that command can be a write.
+        // The audit log and this guard would both record it as a plain SELECT.
+        var remote = new RemoteSourceFinder();
+        script.Accept(remote);
+        return remote.Found
+            ? "唯讀模式(read-only mode)不允許 OPENQUERY / OPENROWSET / OPENDATASOURCE:它們會把任意指令交給別的伺服器或讀取檔案,可能在遠端寫入"
             : null;
     }
 
@@ -97,6 +105,15 @@ public static class SqlStatementGuard
     {
         public bool Found { get; private set; }
         public override void Visit(NextValueForExpression node) => Found = true;
+    }
+
+    private sealed class RemoteSourceFinder : TSqlFragmentVisitor
+    {
+        public bool Found { get; private set; }
+        public override void Visit(OpenQueryTableReference node) => Found = true;
+        public override void Visit(OpenRowsetTableReference node) => Found = true;
+        public override void Visit(BulkOpenRowset node) => Found = true;
+        public override void Visit(AdHocTableReference node) => Found = true;
     }
 
     private sealed class GuardVisitor(

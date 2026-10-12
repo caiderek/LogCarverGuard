@@ -28,7 +28,7 @@
         },
         {
           "name": "LOGCARVERGUARD_READ_ONLY",
-          "description": "Set to true to allow queries only.",
+          "description": "Set to true to allow queries only (SELECT without INTO; remote sources such as OPENQUERY are blocked). Leave unset for the default guard rules.",
           "format": "string",
           "isRequired": false,
           "isSecret": false
