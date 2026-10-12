@@ -8,6 +8,7 @@ WORKDIR /src
 
 # Project files first, so the restore layer is cached across source-only changes.
 COPY src/LogCarverGuard.Core/*.csproj src/LogCarverGuard.Core/
+COPY src/LogCarverGuard.Tools/*.csproj src/LogCarverGuard.Tools/
 COPY src/LogCarverGuard.Hosting/*.csproj src/LogCarverGuard.Hosting/
 COPY src/LogCarverGuard.Server/*.csproj src/LogCarverGuard.Server/
 COPY src/LogCarverGuard.Cli/*.csproj src/LogCarverGuard.Cli/
