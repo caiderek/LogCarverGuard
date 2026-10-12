@@ -3,6 +3,7 @@
     <Project Path="src/LogCarverGuard.Cli/LogCarverGuard.Cli.csproj" />
     <Project Path="src/LogCarverGuard.Core/LogCarverGuard.Core.csproj" />
     <Project Path="src/LogCarverGuard.Hosting/LogCarverGuard.Hosting.csproj" />
+    <Project Path="src/LogCarverGuard.Local/LogCarverGuard.Local.csproj" />
     <Project Path="src/LogCarverGuard.Server/LogCarverGuard.Server.csproj" />
     <Project Path="src/LogCarverGuard.Tools/LogCarverGuard.Tools.csproj" />
   </Folder>
@@ -10,6 +11,7 @@
     <Project Path="tests/LogCarverGuard.Cli.Tests/LogCarverGuard.Cli.Tests.csproj" />
     <Project Path="tests/LogCarverGuard.Core.IntegrationTests/LogCarverGuard.Core.IntegrationTests.csproj" />
     <Project Path="tests/LogCarverGuard.Core.Tests/LogCarverGuard.Core.Tests.csproj" />
+    <Project Path="tests/LogCarverGuard.Local.Tests/LogCarverGuard.Local.Tests.csproj" />
     <Project Path="tests/LogCarverGuard.Server.Tests/LogCarverGuard.Server.Tests.csproj" />
   </Folder>
 </Solution>
