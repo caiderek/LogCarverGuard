@@ -32,6 +32,34 @@
           "format": "string",
           "isRequired": false,
           "isSecret": false
+        },
+        {
+          "name": "LOGCARVERGUARD_AUDIT_DB_PATH",
+          "description": "Path of the audit log SQLite file. Defaults to LogCarverGuard/audit.db under the local application data folder.",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LOGCARVERGUARD_TRUNCATE_ALLOWLIST",
+          "description": "Comma-separated schema.table entries where TRUNCATE TABLE is allowed. Empty means all TRUNCATE is blocked.",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LOGCARVERGUARD_EXEC_WHITELIST",
+          "description": "Comma-separated schema.procedure entries that may be run with EXEC. Empty means all EXEC is blocked.",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false
+        },
+        {
+          "name": "LOGCARVERGUARD_ALTER_DROP_COLUMN_ALLOWLIST",
+          "description": "Comma-separated schema.table entries where ALTER TABLE ... DROP COLUMN is allowed. Empty means it is blocked.",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false
         }
       ]
     }
