@@ -1,0 +1,40 @@
+# Example deployment. Fill in the real SQL Server connection string first.
+#
+#   docker compose up -d --build
+#   docker compose exec logcarverguard dotnet cli/LogCarverGuard.Cli.dll \
+#     issue-key --owner alice --login alice_sql_login
+
+services:
+  logcarverguard:
+    build: .
+    ports:
+      # Localhost only by default. The service speaks plain HTTP and the
+      # X-LogCarverGuard-Key header is a long-lived credential, so put a
+      # TLS-terminating reverse proxy in front for any real deployment.
+      - "127.0.0.1:8080:8080"
+    environment:
+      # Required. The proxy's own service login. It does NOT need sysadmin:
+      # it only needs IMPERSONATE on each user's own login, e.g.
+      #   GRANT IMPERSONATE ON LOGIN::[alice_sql_login] TO [logcarverguard_svc];
+      # Each request then runs as the real user, under that user's own grants.
+      # Production: do not keep the password here. Mount a secret file and set
+      # LOGCARVERGUARD_SQLSERVER_CONNECTION_STRING_FILE: /run/secrets/sql-connstring
+      # instead, and drop TrustServerCertificate=true once SQL Server has a
+      # certificate that this host trusts.
+      LOGCARVERGUARD_SQLSERVER_CONNECTION_STRING: "Server=sql-server-host,1433;Initial Catalog=your-database;User Id=logcarverguard_svc;Password=CHANGE_ME;TrustServerCertificate=true;"
+      # Optional: comma-separated "schema.table" / "schema.procedure" entries.
+      # LOGCARVERGUARD_TRUNCATE_ALLOWLIST: "dbo.Staging"
+      # LOGCARVERGUARD_EXEC_WHITELIST: "dbo.sp_RefreshStagingData"
+      # LOGCARVERGUARD_ALTER_DROP_COLUMN_ALLOWLIST: "dbo.SomeTable"
+      # Optional: IPs/CIDR ranges allowed to reach the service at all, checked
+      # before API-key auth. Unset = no restriction.
+      # LOGCARVERGUARD_ALLOWED_CLIENT_IPS: "10.0.0.5,192.168.1.0/24"
+      # Optional: direct peers trusted to set X-Forwarded-For (only needed
+      # behind a reverse proxy). Unset = that header is never read.
+      # LOGCARVERGUARD_TRUSTED_PROXIES: "10.0.0.1"
+    volumes:
+      - logcarverguard-data:/data
+    restart: unless-stopped
+
+volumes:
+  logcarverguard-data:

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>LogCarverGuard.Server</AssemblyName>
+    <RootNamespace>LogCarverGuard.Server</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LogCarverGuard.Hosting\LogCarverGuard.Hosting.csproj" />
+  </ItemGroup>
+
+</Project>
