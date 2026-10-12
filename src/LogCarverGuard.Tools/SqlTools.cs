@@ -9,17 +9,16 @@ namespace LogCarverGuard.Server.Tools;
 
 /// <summary>
 /// The MCP tool an AI agent calls to read and write - 規劃書 流程圖②/③.
-/// Front-door auth lives in <see cref="CallerResolver"/> (header check +
-/// ApiKeyStore lookup) rather than ASP.NET's authentication middleware,
-/// since this is a simple bearer-token scheme rather than OAuth/JWT.
+/// Who is calling, and on which connection, is the <see cref="ICallerSession"/>'s
+/// business: the central service checks an API key header and impersonates
+/// that person's login, the local host uses its configured connection.
 ///
 /// Anything extra in the response of an executed write comes from the
 /// registered <see cref="IExecutionObserver"/>s; with none, nothing is added.
 /// </summary>
 [McpServerToolType]
 public sealed class SqlTools(
-    CallerResolver callerResolver,
-    ImpersonatedConnectionFactory connectionFactory,
+    ICallerSession callerSession,
     IAuditSink auditSink,
     GuardPolicy guardPolicy,
     IEnumerable<IExecutionObserver> observers)
@@ -38,22 +37,21 @@ public sealed class SqlTools(
         [Description("The SQL statement to execute.")] string sql,
         CancellationToken ct)
     {
-        var apiKeyInfo = await callerResolver.ResolveAsync(ct);
-
         // The caller's own identity does the write, so SQL Server enforces
         // their actual GRANT/DENY. Any extra privileged work belongs to an
         // execution observer, which opens its own connection if it needs one.
-        await using var executionConnection = await connectionFactory.OpenAsync(apiKeyInfo.SqlLogin, ct);
+        await using var caller = await callerSession.OpenAsync(ct);
 
         AuditRecord record;
         try
         {
             record = await GuardedSqlExecutor.ExecuteAsync(
-                executionConnection, sql, apiKeyInfo.Owner,
+                caller.Connection, sql, caller.Owner,
                 guardPolicy.TruncateAllowedTables, guardPolicy.ExecWhitelist,
                 auditSink, ct,
                 alterTableDropColumnAllowedTables: guardPolicy.AlterTableDropColumnAllowedTables,
-                observers: [.. observers]);
+                observers: [.. observers],
+                readOnly: guardPolicy.ReadOnly);
         }
         catch (SqlException ex)
         {

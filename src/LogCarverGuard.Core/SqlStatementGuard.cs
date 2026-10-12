@@ -32,7 +32,8 @@ public static class SqlStatementGuard
         string sql,
         IReadOnlySet<(string Schema, string Table)> truncateAllowedTables,
         IReadOnlySet<(string Schema, string Procedure)> execWhitelist,
-        IReadOnlySet<(string Schema, string Table)>? alterTableDropColumnAllowedTables = null)
+        IReadOnlySet<(string Schema, string Table)>? alterTableDropColumnAllowedTables = null,
+        bool readOnly = false)
     {
         var parser = new TSql170Parser(initialQuotedIdentifiers: true);
         using var reader = new StringReader(sql);
@@ -41,6 +42,11 @@ public static class SqlStatementGuard
         if (errors.Count > 0)
             return GuardVerdict.Block($"SQL 剖析失敗,保守拒絕:{string.Join("; ", errors.Select(e => e.Message))}");
 
+        // Read-only mode is an allow-list of statement shapes, checked on top of
+        // (not instead of) the ordinary rules below.
+        if (readOnly && ReadOnlyViolation(fragment) is { } violation)
+            return GuardVerdict.Block(violation);
+
         var visitor = new GuardVisitor(
             truncateAllowedTables, execWhitelist,
             alterTableDropColumnAllowedTables ?? new HashSet<(string, string)>(),
@@ -48,6 +54,49 @@ public static class SqlStatementGuard
         fragment.Accept(visitor);
 
         return visitor.Verdict;
+    }
+
+    private static string? ReadOnlyViolation(TSqlFragment fragment)
+    {
+        if (fragment is not TSqlScript script)
+            return "唯讀模式(read-only mode)只允許查詢:無法辨識這段 SQL 的結構";
+
+        foreach (var batch in script.Batches)
+        {
+            foreach (var statement in batch.Statements)
+            {
+                bool allowed = statement switch
+                {
+                    SelectStatement select => select.Into is null,
+                    PredicateSetStatement => true,
+                    DeclareVariableStatement => true,
+                    SetVariableStatement => true,
+                    PrintStatement => true,
+                    _ => false,
+                };
+                if (!allowed)
+                    return $"唯讀模式(read-only mode)只允許查詢,這句不是查詢:{DescribeStatement(statement)}";
+            }
+        }
+
+        // A SELECT that advances a sequence changes state, so it is not a query here.
+        var sequenceUse = new NextValueForFinder();
+        script.Accept(sequenceUse);
+        return sequenceUse.Found
+            ? "唯讀模式(read-only mode)不允許 NEXT VALUE FOR,它會改變序列的目前值"
+            : null;
+    }
+
+    private static string DescribeStatement(TSqlStatement statement) => statement switch
+    {
+        SelectStatement => "SELECT ... INTO",
+        _ => statement.GetType().Name.Replace("Statement", "", StringComparison.Ordinal).ToUpperInvariant(),
+    };
+
+    private sealed class NextValueForFinder : TSqlFragmentVisitor
+    {
+        public bool Found { get; private set; }
+        public override void Visit(NextValueForExpression node) => Found = true;
     }
 
     private sealed class GuardVisitor(

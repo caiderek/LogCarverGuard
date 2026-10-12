@@ -3,7 +3,7 @@ using System.Reflection;
 namespace LogCarverGuard.Server.Tests;
 
 /// <summary>
-/// This host is made of exactly three of this repo's assemblies. A structural
+/// This host is made of exactly four of this repo's assemblies. A structural
 /// check, because "nobody registered the extra code" is a runtime property
 /// that a later edit could quietly change, whereas an assembly reference
 /// cannot appear by accident.
@@ -11,7 +11,7 @@ namespace LogCarverGuard.Server.Tests;
 public class FreeEditionDependencyTests
 {
     [Fact]
-    public void Server_ReachesOnlyItsOwnThreeAssemblies()
+    public void Server_ReachesOnlyItsOwnFourAssemblies()
     {
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         var queue = new Queue<AssemblyName>();
@@ -41,7 +41,7 @@ public class FreeEditionDependencyTests
         Assert.Contains("LogCarverGuard.Core", seen);       // the walk really reached the code
         Assert.Contains("LogCarverGuard.Hosting", seen);
 
-        string[] allowed = ["LogCarverGuard.Server", "LogCarverGuard.Hosting", "LogCarverGuard.Core"];
+        string[] allowed = ["LogCarverGuard.Server", "LogCarverGuard.Hosting", "LogCarverGuard.Tools", "LogCarverGuard.Core"];
         var unexpected = seen.Where(n => n.StartsWith("LogCarver", StringComparison.OrdinalIgnoreCase)
                                          && !allowed.Contains(n, StringComparer.OrdinalIgnoreCase)).ToList();
         Assert.Empty(unexpected);

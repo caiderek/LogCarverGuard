@@ -15,11 +15,16 @@ public sealed class GuardPolicy
     public IReadOnlySet<(string Schema, string Procedure)> ExecWhitelist { get; }
     public IReadOnlySet<(string Schema, string Table)> AlterTableDropColumnAllowedTables { get; }
 
+    /// <summary>When true only queries are allowed through.</summary>
+    public bool ReadOnly { get; }
+
     public GuardPolicy(
         IReadOnlySet<(string Schema, string Table)> truncateAllowedTables,
         IReadOnlySet<(string Schema, string Procedure)> execWhitelist,
-        IReadOnlySet<(string Schema, string Table)>? alterTableDropColumnAllowedTables = null)
+        IReadOnlySet<(string Schema, string Table)>? alterTableDropColumnAllowedTables = null,
+        bool readOnly = false)
     {
+        ReadOnly = readOnly;
         TruncateAllowedTables = truncateAllowedTables;
         ExecWhitelist = execWhitelist;
         AlterTableDropColumnAllowedTables = alterTableDropColumnAllowedTables ?? new HashSet<(string, string)>();

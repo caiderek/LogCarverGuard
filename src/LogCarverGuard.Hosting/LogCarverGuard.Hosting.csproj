@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\LogCarverGuard.Core\LogCarverGuard.Core.csproj" />
+    <ProjectReference Include="..\LogCarverGuard.Tools\LogCarverGuard.Tools.csproj" />
   </ItemGroup>
 
 </Project>

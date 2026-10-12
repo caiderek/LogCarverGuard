@@ -101,9 +101,11 @@ public static class GuardedSqlExecutor
         IAuditSink auditSink,
         CancellationToken ct = default,
         IReadOnlySet<(string Schema, string Table)>? alterTableDropColumnAllowedTables = null,
-        IReadOnlyList<IExecutionObserver>? observers = null)
+        IReadOnlyList<IExecutionObserver>? observers = null,
+        bool readOnly = false)
     {
-        var verdict = SqlStatementGuard.Evaluate(sql, truncateAllowedTables, execWhitelist, alterTableDropColumnAllowedTables);
+        var verdict = SqlStatementGuard.Evaluate(
+            sql, truncateAllowedTables, execWhitelist, alterTableDropColumnAllowedTables, readOnly);
 
         if (verdict.Decision == GuardDecision.Block)
         {

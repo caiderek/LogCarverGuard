@@ -4,6 +4,7 @@
     <Project Path="src/LogCarverGuard.Core/LogCarverGuard.Core.csproj" />
     <Project Path="src/LogCarverGuard.Hosting/LogCarverGuard.Hosting.csproj" />
     <Project Path="src/LogCarverGuard.Server/LogCarverGuard.Server.csproj" />
+    <Project Path="src/LogCarverGuard.Tools/LogCarverGuard.Tools.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/LogCarverGuard.Cli.Tests/LogCarverGuard.Cli.Tests.csproj" />

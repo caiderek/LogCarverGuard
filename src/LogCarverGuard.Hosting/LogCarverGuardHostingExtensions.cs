@@ -85,6 +85,7 @@ public static class LogCarverGuardHostingExtensions
         services.AddSingleton(new GuardHostOptions(clientIpAllowlist, forwardedHeadersOptions));
         services.AddSingleton(new ImpersonatedConnectionFactory(serviceAccountConnectionString));
         services.AddSingleton<CallerResolver>();
+        services.AddSingleton<ICallerSession, ImpersonatingCallerSession>();
 
         // Factory-delegate registration (not AddSingleton(instance)) so the DI
         // container actually owns and disposes these on shutdown - it only
