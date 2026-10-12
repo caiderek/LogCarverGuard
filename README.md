@@ -1,3 +1,5 @@
+<!-- mcp-name: io.github.caiderek/logcarverguard -->
+
 # LogCarverGuard
 
 **English | [繁體中文](README.zh-TW.md)**
@@ -29,7 +31,33 @@ AI agent --(MCP, API key)--> LogCarverGuard proxy --(EXECUTE AS the caller's own
 
 This list is deliberately narrow. It is not "everything an AI could break": `DROP INDEX`, `sp_rename`, `BACKUP DATABASE`, or a Linked Server `OPENQUERY` are not specially handled and run if the real login may run them. **The real security boundary is the SQL login's own grants**, so issue each API key against an account with the least privilege you can accept, never sysadmin or db_owner.
 
-## Install
+## Local mode
+
+Runs on your own machine, started by your AI tool over stdio. No server, no Docker, no API keys.
+
+```
+dotnet tool install -g LogCarverGuard.Local
+claude mcp add logcarverguard --env LOGCARVERGUARD_CONNECTION_STRING="Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true" -- logcarverguard
+```
+
+Or run it without installing, through `dnx` (end the command with `-- dotnet dnx LogCarverGuard.Local --yes`).
+
+| Variable | Purpose | Default |
+|---|---|---|
+| `LOGCARVERGUARD_CONNECTION_STRING` (or `_FILE`) | The login the statements run as | required |
+| `LOGCARVERGUARD_READ_ONLY` | `true` allows queries only | `false` |
+| `LOGCARVERGUARD_AUDIT_DB_PATH` | Audit log SQLite file | `LogCarverGuard/audit.db` under your local application data folder |
+| `LOGCARVERGUARD_TRUNCATE_ALLOWLIST`, `LOGCARVERGUARD_EXEC_WHITELIST`, `LOGCARVERGUARD_ALTER_DROP_COLUMN_ALLOWLIST` | Same allow-lists as the central service | empty (all blocked) |
+
+**Read-only mode** lets `SELECT` (without `INTO`) through, plus `SET`, `DECLARE` and `PRINT`. Everything else is blocked with a reason, including `EXEC` even when it is allow-listed and `NEXT VALUE FOR`. Also give the login only the permissions it needs; the guard is a second layer, not the first.
+
+**What local mode is, and is not.** It is a guardrail against an agent doing something destructive by accident. It is not a security boundary:
+
+- The connection string, and so the credentials, live on your machine and in your AI tool's configuration. An agent that can run shell commands or read that configuration can connect to SQL Server directly and skip this proxy.
+- Every statement runs as the one login in the connection string. There is no per-person identity; the audit log records the operating-system user name and is a local file.
+- For a real boundary use the central service below: SQL Server only accepts connections from the proxy, and each person has their own login.
+
+## Install the central service
 
 Needs a Linux host with Docker, and a SQL Server with TCP/IP enabled and **mixed-mode authentication**.
 

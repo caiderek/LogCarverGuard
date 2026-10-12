@@ -1,0 +1,39 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.caiderek/logcarverguard",
+  "title": "LogCarverGuard",
+  "description": "Guardrail for AI agents on SQL Server: statement blocking, optional read-only mode and an audit log.",
+  "version": "0.1.0",
+  "websiteUrl": "https://github.com/caiderek/LogCarverGuard",
+  "repository": {
+    "url": "https://github.com/caiderek/LogCarverGuard",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "nuget",
+      "identifier": "LogCarverGuard.Local",
+      "version": "0.1.0",
+      "runtimeHint": "dnx",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "LOGCARVERGUARD_CONNECTION_STRING",
+          "description": "SQL Server connection string the statements run as. Example: Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true",
+          "format": "string",
+          "isRequired": true,
+          "isSecret": true
+        },
+        {
+          "name": "LOGCARVERGUARD_READ_ONLY",
+          "description": "Set to true to allow queries only.",
+          "format": "string",
+          "isRequired": false,
+          "isSecret": false
+        }
+      ]
+    }
+  ]
+}

@@ -29,7 +29,33 @@ AI agent --(MCP, API key)--> LogCarverGuard proxy --(用呼叫者自己的登入
 
 這份清單是刻意限定範圍的,**不是「擋住 AI 能做的所有壞事」**:`DROP INDEX`、`sp_rename`、`BACKUP DATABASE`、透過 Linked Server 的 `OPENQUERY` 都沒有特別處理,只要那個真實登入有權限就會執行。**真正的安全邊界是 SQL 登入自己的 GRANT/DENY**,所以每把 API key 請對應到你能接受的最小權限帳號,不要給 sysadmin 或 db_owner。
 
-## 安裝
+## 本機模式
+
+在你自己的機器上執行,由 AI 工具透過 stdio 啟動。不需要伺服器、不需要 Docker、不需要 API key。
+
+```
+dotnet tool install -g LogCarverGuard.Local
+claude mcp add logcarverguard --env LOGCARVERGUARD_CONNECTION_STRING="Server=localhost;Database=MyDb;Integrated Security=true;TrustServerCertificate=true" -- logcarverguard
+```
+
+也可以不安裝,透過 `dnx` 直接執行(指令結尾改成 `-- dotnet dnx LogCarverGuard.Local --yes`)。
+
+| 環境變數 | 用途 | 預設值 |
+|---|---|---|
+| `LOGCARVERGUARD_CONNECTION_STRING`(或 `_FILE`) | 語句以哪個登入身分執行 | 必填 |
+| `LOGCARVERGUARD_READ_ONLY` | `true` 時只允許查詢 | `false` |
+| `LOGCARVERGUARD_AUDIT_DB_PATH` | 稽核紀錄 SQLite 路徑 | 本機應用程式資料夾下的 `LogCarverGuard/audit.db` |
+| `LOGCARVERGUARD_TRUNCATE_ALLOWLIST`、`LOGCARVERGUARD_EXEC_WHITELIST`、`LOGCARVERGUARD_ALTER_DROP_COLUMN_ALLOWLIST` | 跟中央服務相同的白名單 | 空(全部擋) |
+
+**唯讀模式**只放行 `SELECT`(不含 `INTO`),以及 `SET`、`DECLARE`、`PRINT`。其他一律擋下並說明原因,包含即使在白名單上的 `EXEC`,以及 `NEXT VALUE FOR`。登入帳號本身也請只給它需要的權限,guard 是第二道防線,不是第一道。
+
+**本機模式是什麼、不是什麼。** 它是防止 agent 手滑做出破壞性操作的護欄,**不是安全邊界**:
+
+- 連線字串(也就是帳密)在你的機器上,也在 AI 工具的設定檔裡。能執行 shell 指令或讀取那份設定的 agent,可以直接連 SQL Server 繞過這個 proxy。
+- 所有語句都以連線字串裡那一個登入身分執行,沒有逐人身分;稽核紀錄記的是作業系統使用者名稱,而且是本機檔案。
+- 要真正的邊界,請用下面的中央服務:SQL Server 只接受 proxy 的連線,而且每個人有自己的登入。
+
+## 安裝中央服務
 
 需要一台跑 Docker 的 Linux 主機,以及開啟 TCP/IP、啟用**混合驗證模式**的 SQL Server。
 
