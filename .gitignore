@@ -8,3 +8,4 @@ obj/
 *.db-journal
 publish/
 CLAUDE.md
+artifacts/
