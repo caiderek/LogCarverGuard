@@ -1,4 +1,6 @@
 using LogCarverGuard.Core;
+using Microsoft.Data.SqlClient;
+using ModelContextProtocol;
 
 namespace LogCarverGuard.Server;
 
@@ -14,7 +16,16 @@ public sealed class ImpersonatingCallerSession(
     public async Task<CallerConnection> OpenAsync(CancellationToken ct)
     {
         var apiKeyInfo = await callerResolver.ResolveAsync(ct);
-        var connection = await connectionFactory.OpenAsync(apiKeyInfo.SqlLogin, ct);
-        return new CallerConnection(apiKeyInfo.Owner, connection);
+        try
+        {
+            var connection = await connectionFactory.OpenAsync(apiKeyInfo.SqlLogin, ct);
+            return new CallerConnection(apiKeyInfo.Owner, connection);
+        }
+        catch (SqlException ex) when (ServiceAccountPermissionMessages.DescribeImpersonationFailure(ex, apiKeyInfo.SqlLogin) is not null)
+        {
+            // An unhandled exception reaches the agent only as "An error occurred"; an
+            // McpException's message is passed through, so the administrator can act on it.
+            throw new McpException(ServiceAccountPermissionMessages.DescribeImpersonationFailure(ex, apiKeyInfo.SqlLogin)!, ex);
+        }
     }
 }
