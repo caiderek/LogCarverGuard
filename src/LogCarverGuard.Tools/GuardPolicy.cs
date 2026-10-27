@@ -3,7 +3,7 @@ using LogCarverGuard.Core;
 namespace LogCarverGuard.Server;
 
 /// <summary>
-/// The admin-maintained allowlists SqlStatementGuard needs (規劃書 三-3), plus
+/// The admin-maintained allowlists SqlStatementGuard needs, plus
 /// a couple of other operator-level knobs that belong in the same place -
 /// loaded once at startup from configuration/env vars, not per-request, since
 /// these are operator decisions, not something an API key's owner can change

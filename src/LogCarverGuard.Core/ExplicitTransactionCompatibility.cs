@@ -4,8 +4,8 @@ namespace LogCarverGuard.Core;
 
 /// <summary>
 /// Decides whether a statement is safe to run inside the proxy's own
-/// explicit transaction (see GuardedSqlExecutor's 2026-10-07 wrap-and-
-/// capture fix for the wrong-transaction-anchor concurrency bug).
+/// explicit transaction (GuardedSqlExecutor wraps each statement in its own
+/// transaction so it can capture the transaction id).
 ///
 /// In practice this is a defense-in-depth safety net, not the primary
 /// filter: GuardedSqlExecutor only ever wraps a statement when
@@ -18,8 +18,8 @@ namespace LogCarverGuard.Core;
 /// DATABASE ...;") - DmlTargetTableResolver only looks for the first DML
 /// target, so it would never notice.
 ///
-/// The deny list below is grounded in a real spike against a live SQL
-/// Server (2026-10-07, see this project's status memory): BACKUP inside an
+/// The deny list below is grounded in a test against a live SQL
+/// Server: BACKUP inside an
 /// explicit transaction fails with error 3021 ("Backup and restore
 /// operations are not allowed within a transaction"); RECONFIGURE fails
 /// with error 574 ("... statement cannot be used inside a user
@@ -67,7 +67,7 @@ public static class ExplicitTransactionCompatibility
         public override void Visit(CreateFullTextIndexStatement node) => FoundIncompatibleStatement = true;
 
         // The caller's own transaction-control statements are blocked
-        // outright by SqlStatementGuard (2026-10-07) before this is ever
+        // outright by SqlStatementGuard before this is ever
         // reached, so no case for BEGIN/COMMIT/ROLLBACK/SAVE TRAN is needed
         // here - this is belt-and-suspenders only in case that guard rule
         // is ever relaxed without revisiting this file too.

@@ -46,9 +46,7 @@ public sealed record AuditRecord(
 }
 
 /// <summary>
-/// Where audit records go. In-memory for now (see LogCarverGuard project
-/// status memory - dedicated persistent storage is a separate, not-yet-built
-/// piece); this seam is what a real store will plug into later without
+/// Where audit records go. The default sink keeps them in memory; a persistent store plugs in through this interface without
 /// GuardedSqlExecutor itself changing.
 /// </summary>
 public interface IAuditSink
@@ -70,7 +68,7 @@ public sealed class InMemoryAuditSink : IAuditSink
 }
 
 /// <summary>
-/// The write-path engine from 規劃書 流程圖②: evaluate the statement through
+/// The write-path engine: evaluate the statement through
 /// SqlStatementGuard first (blocking happens before the statement ever
 /// reaches SQL Server, not after); if allowed, execute it for real, write
 /// every outcome - blocked or executed - to the audit sink, and then tell
@@ -138,12 +136,9 @@ public static class GuardedSqlExecutor
             command.Transaction = ownTransaction;
         }
 
-        // ExecuteReaderAsync (not ExecuteNonQueryAsync, the original choice)
-        // so a SELECT's rows are actually available to return - found for
-        // real 2026-10-02 via stress testing that execute_sql could not
-        // return query results at all (ExecuteNonQueryAsync always returns
-        // -1 and discards any result set), which meant an AI agent calling
-        // this tool to read data got nothing back, not even for `SELECT 1`.
+        // ExecuteReaderAsync (not ExecuteNonQueryAsync) so a SELECT's rows are
+        // actually available to return: ExecuteNonQueryAsync always returns -1 and
+        // discards any result set, so execute_sql could not read data at all.
         // Only the FIRST result set's rows are captured (a known, simple
         // v1 choice - multi-statement batches that return more than one
         // result set are a rarer shape than "run one query, get its rows"),

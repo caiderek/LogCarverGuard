@@ -13,7 +13,7 @@ public sealed record ApiKeySummary(long Id, string Owner, string SqlLogin, DateT
 }
 
 /// <summary>
-/// Front-door authentication store from 規劃書 三-5: the proxy issues its own
+/// Front-door authentication store: the proxy issues its own
 /// high-entropy API keys (not account/password pairs), hashed into a local
 /// SQLite file - no separate database service to operate/secure for
 /// something this small. One key per person, so every audit record
@@ -33,9 +33,7 @@ public sealed record ApiKeySummary(long Id, string Owner, string SqlLogin, DateT
 /// Microsoft.Data.Sqlite does not guarantee a single SqliteConnection is
 /// safe for concurrent command execution from multiple callers, and
 /// ValidateAsync is hit on every single tool call via SqlTools'
-/// ResolveCallerAsync. Found missing 2026-10-07 by independent audit -
-/// SqliteAuditSink got this lock for exactly this reason and ApiKeyStore was
-/// simply never given the same treatment, so two concurrent callers could
+/// ResolveCallerAsync. SqliteAuditSink takes the same lock for the same reason; without it two concurrent callers could
 /// throw a raw SqliteException/InvalidOperationException instead of getting
 /// a clean auth result - an intermittent, spurious auth failure under
 /// exactly the concurrent load this project has spent real effort making

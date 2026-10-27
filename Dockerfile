@@ -1,4 +1,4 @@
-# LogCarverGuard (free edition): the MCP proxy as a centralized network
+# LogCarverGuard: the MCP proxy as a centralized network
 # service. Bundles the admin CLI into the same image, since it only ever
 # operates on the same SQLite files the server uses
 # (docker exec <container> dotnet cli/LogCarverGuard.Cli.dll ...).

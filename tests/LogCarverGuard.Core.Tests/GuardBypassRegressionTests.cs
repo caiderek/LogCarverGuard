@@ -1,7 +1,7 @@
 namespace LogCarverGuard.Core.Tests;
 
 /// <summary>
-/// Shapes the independent review of the free edition found slipping past the
+/// Shapes that must not slip past the
 /// guard: INSERT ... EXEC carries its EXEC inside an INSERT source rather
 /// than as an ExecuteStatement, and allow-list matching used to ignore a
 /// database or server qualifier.

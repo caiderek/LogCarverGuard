@@ -13,12 +13,8 @@ namespace LogCarverGuard.Core;
 /// Deliberately lives on the set's own comparer, not as a normalization
 /// step in the lookup code or in whatever builds the set - that way it
 /// can't be silently bypassed by a caller that constructs the set a
-/// different way than GuardPolicy.ParseList does. Found missing in
-/// independent review 2026-10-04; the first fix attempt (lowercasing in
-/// GuardPolicy.ParseList plus lowercasing the lookup key in
-/// SqlStatementGuard) only worked for sets that went through ParseList -
-/// a test building `new HashSet&lt;(string, string)&gt; { ("DBO", "Staging") }`
-/// directly reproduced the exact same bug, which is what caught this.
+/// different way than GuardPolicy.ParseList does. A set built directly with
+/// `new HashSet&lt;(string, string)&gt; { ("DBO", "Staging") }` still compares case-insensitively.
 /// </summary>
 public sealed class CaseInsensitiveNameTupleComparer : IEqualityComparer<(string Schema, string Name)>
 {

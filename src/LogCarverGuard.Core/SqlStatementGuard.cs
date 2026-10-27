@@ -11,12 +11,12 @@ public sealed record GuardVerdict(GuardDecision Decision, string? Reason, bool A
 }
 
 /// <summary>
-/// 決定一句 SQL 能不能透過 proxy 送到 SQL Server——規劃書「三-3 DDL 處理」的實作。
+/// 決定一句 SQL 能不能透過 proxy 送到 SQL Server。
 /// 用官方 T-SQL 剖析器(ScriptDom)做分類,不是正規表示式/關鍵字比對,
-/// 這樣註解、字串值裡的假關鍵字不會被誤判(2026-10-01 已用一批刁難案例驗證過)。
+/// 這樣註解、字串值裡的假關鍵字不會被誤判。
 ///
 /// 呼叫端要在送到 SQL Server 之前先呼叫這個檢查——封鎖必須發生在送出去之前,
-/// 不是等 SQL Server 回應之後(今天的流程圖審查抓到的那個順序 bug)。
+/// 不是等 SQL Server 回應之後。
 /// </summary>
 public static class SqlStatementGuard
 {
@@ -133,7 +133,7 @@ public static class SqlStatementGuard
         public override void Visit(DropTableStatement node) =>
             Block("DROP TABLE 一律封鎖:整張資料表連同結構一起消失,沒有可靠的復原辦法");
 
-        // 2026-10-04 補:跟 DROP TABLE 同等級,影響範圍是整個資料庫(不是一張表),
+        // 跟 DROP TABLE 同等級,影響範圍是整個資料庫(不是一張表),
         // 不走白名單邏輯——沒有理由讓 AI coding agent 需要用到這幾個指令。
         public override void Visit(DropDatabaseStatement node) =>
             Block("DROP DATABASE 一律封鎖:影響整個資料庫,沒有任何復原機制可言");
@@ -151,11 +151,10 @@ public static class SqlStatementGuard
         public override void Visit(AlterDatabaseSetStatement node) =>
             Block("ALTER DATABASE ... SET 一律封鎖:可以讓整個資料庫離線/切成單人模式等,不需要真的刪資料就能癱瘓服務");
 
-        // 2026-10-07 補:呼叫端自己在 SQL 裡寫交易控制語句,目前會造成稽核紀錄
-        // 跟實際 commit 狀態不一致的真洞——例如 `BEGIN TRAN; UPDATE ...;
-        // ROLLBACK;` 目前會被記成 Executed、留下看起來正常的稽核紀錄,即使
+        // 呼叫端自己在 SQL 裡寫交易控制語句,會造成稽核紀錄跟實際 commit 狀態不一致——
+        // 例如 `BEGIN TRAN; UPDATE ...; ROLLBACK;` 會被記成 Executed、留下看起來正常的稽核紀錄,即使
         // 實際上什麼都沒真的 commit。一律封鎖,不走白名單:這個 proxy 本來就
-        // 會為每句語句自己管理交易邊界(見 GuardedSqlExecutor 同日的修正),呼叫端
+        // 會為每句語句自己管理交易邊界,呼叫端
         // 沒有正當理由需要自己再開一層。
         public override void Visit(BeginTransactionStatement node) =>
             Block("BEGIN TRANSACTION 一律封鎖:交易邊界由 proxy 自己管理,呼叫端自行控制會讓稽核紀錄跟實際 commit 狀態不一致");
@@ -169,24 +168,21 @@ public static class SqlStatementGuard
         public override void Visit(SaveTransactionStatement node) =>
             Block("SAVE TRANSACTION 一律封鎖:交易邊界由 proxy 自己管理,呼叫端自行控制會讓稽核紀錄跟實際 commit 狀態不一致");
 
-        // 2026-10-07 補,獨立審查找到的真洞,嚴重度最高:REVERT / EXECUTE AS
-        // 完全沒被擋過。ImpersonatedConnectionFactory 用 EXECUTE AS LOGIN 把連線
+        // REVERT / EXECUTE AS 一律封鎖。ImpersonatedConnectionFactory 用 EXECUTE AS LOGIN 把連線
         // 切換成呼叫端對應的真實帳號,但這個連線本身是用 proxy 自己的
         // 服務帳號開的。如果呼叫端的 SQL 裡夾帶一句
         // `REVERT;`,就會切回服務帳號的身份,後面接的任何語句都繞過了「SQL
         // Server 原生 GRANT/DENY 套用在真人身上」這整個權限模型——稽核紀錄
         // 還是會正常產生,完全看不出異常。`EXECUTE AS LOGIN = 'sa';`
         // 之類的語句是同一個洞的另一個面向。一律封鎖,不走白名單:呼叫端沒有
-        // 任何正當理由需要在自己的語句裡切換執行身份。ImpersonatedConnectionFactory
-        // 也同時補上 WITH NO REVERT 當縱深防禦,但這裡才是主要防線。
+        // 任何正當理由需要在自己的語句裡切換執行身份。
         public override void Visit(RevertStatement node) =>
             Block("REVERT 一律封鎖:會把執行身份切回 proxy 自己的服務帳號,完全繞過每個人的 SQL Server 權限");
 
         public override void Visit(ExecuteAsStatement node) =>
             Block("EXECUTE AS 一律封鎖:會改變這句之後的執行身份,完全繞過每個人的 SQL Server 權限");
 
-        // 同一類洞:這幾句本來就不該讓任何 AI agent 透過這個 proxy 執行,
-        // 之前單純是沒被 visit 到,不是刻意放行。
+        // 同一類:這幾句不該讓任何 AI agent 透過這個 proxy 執行。
         public override void Visit(GrantStatement node) =>
             Block("GRANT 一律封鎖:權限管理不應該透過這個 proxy 執行");
 
@@ -205,16 +201,13 @@ public static class SqlStatementGuard
         public override void Visit(KillStatement node) =>
             Block("KILL 一律封鎖:會強制終止其他工作階段,不應該透過這個 proxy 執行");
 
-        // 2026-10-07 補:今天稍早新增的交易控制封鎖有一個漏掉的角落——
         // `SET IMPLICIT_TRANSACTIONS ON` 解析出來的節點類型是 PredicateSetStatement
         // (SetOnOffStatement 的子類別),不是 BeginTransactionStatement,
         // 不會被上面那組 Visit 攔到。危害跟 BEGIN TRAN 一樣:後面接的 EXEC 如果
         // 沒有可辨識的 INSERT/UPDATE/DELETE 目標(DmlTargetTableResolver 找不到
         // 錨點),GuardedSqlExecutor 就不會把它包進自己的交易,呼叫端開的隱性
-        // 交易在連線釋放時悄悄回滾,但稽核紀錄仍然記成 Executed——又是一個
-        // 「稽核紀錄跟實際 commit 狀態不一致」的洞,獨立審查發現,尚未對著真的
-        // SQL Server 驗證過確切行為,但先擋下來是安全的降級,不會擋到任何
-        // 正常用法(呼叫端沒有理由需要自己開隱性交易模式)。
+        // 交易在連線釋放時悄悄回滾,但稽核紀錄仍然記成 Executed。
+        // 一律封鎖不會擋到任何正常用法(呼叫端沒有理由需要自己開隱性交易模式)。
         public override void Visit(PredicateSetStatement node)
         {
             // Confirmed via reflection against the installed ScriptDom

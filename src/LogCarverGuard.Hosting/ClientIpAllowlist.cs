@@ -4,10 +4,9 @@ namespace LogCarverGuard.Server;
 
 /// <summary>
 /// Restricts which client IPs may reach the MCP endpoint at all, independent
-/// of API-key auth and independent of the host's own firewall - added
-/// 2026-10-04 because relying on an operator to correctly scope their
-/// firewall is, in practice, not a safe assumption ("大部分的人都會很懶防火牆
-/// 全開"): this proxy's own fixed listening port is something an operator
+/// of API-key auth and independent of the host's own firewall:
+/// relying on an operator to correctly scope their firewall is not a safe
+/// assumption, while this proxy's own fixed listening port is something an operator
 /// is far less likely to misconfigure than a firewall rule they have to
 /// remember to write themselves.
 ///

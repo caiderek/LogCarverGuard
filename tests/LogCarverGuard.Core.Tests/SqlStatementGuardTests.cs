@@ -41,8 +41,7 @@ public class SqlStatementGuardTests
     {
         // SQL Server identifiers are case-insensitive under the default
         // collation - an admin approving "dbo.Staging" must still match
-        // an AI writing "dbo.STAGING" or "DBO.staging". Found missing in
-        // independent review 2026-10-04.
+        // an AI writing "dbo.STAGING" or "DBO.staging".
         var allowed = new HashSet<(string, string)>(CaseInsensitiveNameTupleComparer.Instance) { ("DBO", "Staging") };
         Assert.Equal(GuardDecision.Allow, Evaluate("TRUNCATE TABLE dbo.STAGING;", truncateAllowed: allowed).Decision);
     }
@@ -150,12 +149,11 @@ public class SqlStatementGuardTests
         // the TRUNCATE-style allowlist gate exists for DROP COLUMN specifically.
         Assert.Equal(GuardDecision.Allow, Evaluate("ALTER TABLE dbo.T DROP CONSTRAINT CK_SomeCheck;").Decision);
 
-    // 2026-10-07: the caller's own transaction-control statements are
-    // blocked outright - real gap found the same day, the wrong-transaction-
-    // anchor fix's own `BEGIN TRAN; ...; SELECT CURRENT_TRANSACTION_ID();
-    // COMMIT;` wrap assumes the proxy is the only thing opening/closing a
-    // transaction around a statement. Before this, `BEGIN TRAN; UPDATE ...;
-    // ROLLBACK;` got recorded as Executed despite nothing being committed.
+    // The caller's own transaction-control statements are blocked outright: the
+    // executor's `BEGIN TRAN; ...; SELECT CURRENT_TRANSACTION_ID(); COMMIT;` wrap
+    // assumes the proxy is the only thing opening/closing a transaction around a
+    // statement; otherwise `BEGIN TRAN; UPDATE ...; ROLLBACK;` would be recorded as
+    // Executed despite nothing being committed.
     [Theory]
     [InlineData("BEGIN TRANSACTION;")]
     [InlineData("BEGIN TRAN;")]
@@ -168,17 +166,13 @@ public class SqlStatementGuardTests
     public void CallerOwnTransactionControlStatements_AreAlwaysBlocked(string sql) =>
         Assert.Equal(GuardDecision.Block, Evaluate(sql).Decision);
 
-    // 2026-10-07, found by independent audit, most severe finding of the
-    // round: REVERT/EXECUTE AS were never visited at all, so a caller's own
-    // `REVERT;` could switch the connection's security context back to the
-    // proxy's own service account (ImpersonatedConnectionFactory's EXECUTE
-    // AS LOGIN runs on a connection opened as that account) - completely
-    // bypassing the real login's own GRANT/DENY.
+    // REVERT / EXECUTE AS must always be blocked: a caller's own `REVERT;` could switch
+    // the connection's security context back to the proxy's own service account
+    // (ImpersonatedConnectionFactory's EXECUTE AS LOGIN runs on a connection opened as
+    // that account), bypassing the real login's own GRANT/DENY.
     // `EXECUTE AS LOGIN = 'sa';` is the same hole from the other direction.
-    // GRANT/DENY/REVOKE/SETUSER/SHUTDOWN/KILL were also simply never visited -
-    // same class of gap (administrative/identity-changing statements that
-    // were never meant to be reachable through this proxy at all), not a
-    // deliberate decision to allow them.
+    // GRANT/DENY/REVOKE/SETUSER/SHUTDOWN/KILL are administrative/identity-changing
+    // statements that are not meant to be reachable through this proxy at all.
     [Theory]
     [InlineData("REVERT;")]
     [InlineData("EXECUTE AS LOGIN = 'sa';")]
@@ -193,9 +187,8 @@ public class SqlStatementGuardTests
     public void IdentitySwitchingAndPrivilegeStatements_AreAlwaysBlocked(string sql) =>
         Assert.Equal(GuardDecision.Block, Evaluate(sql).Decision);
 
-    // 2026-10-07, found by the same audit: SET IMPLICIT_TRANSACTIONS ON
-    // parses as a PredicateSetStatement, not BeginTransactionStatement, so it
-    // wasn't covered by the transaction-control block above - same
+    // SET IMPLICIT_TRANSACTIONS ON parses as a PredicateSetStatement, not
+    // BeginTransactionStatement, so it needs its own block: the same
     // audit-disagrees-with-commit-state risk (a caller-opened implicit
     // transaction around a bare EXEC that GuardedSqlExecutor never anchors
     // could roll back silently on connection disposal while still being

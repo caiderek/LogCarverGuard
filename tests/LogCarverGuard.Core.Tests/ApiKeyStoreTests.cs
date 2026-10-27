@@ -116,26 +116,14 @@ public sealed class ApiKeyStoreTests : IDisposable
     [Fact]
     public async Task ConcurrentValidateAsyncCalls_DoNotThrow()
     {
-        // Real bug, found 2026-10-07 by independent audit: ApiKeyStore shared
-        // one long-lived SqliteConnection with no lock, unlike its sibling
-        // SqliteAuditSink (which was given a SemaphoreSlim for exactly this
-        // reason - see that class's own doc comment, and Microsoft.Data.Sqlite's
-        // own documented guidance that a single connection isn't safe for
-        // concurrent command execution). ValidateAsync is hit on every single
-        // tool call via SqlTools.ResolveCallerAsync.
+        // ApiKeyStore must not share one long-lived SqliteConnection without a lock, unlike
+        // SqliteAuditSink, which takes a SemaphoreSlim for exactly this reason (a single
+        // connection isn't safe for concurrent command execution, per Microsoft.Data.Sqlite's
+        // own guidance). ValidateAsync is hit on every single tool call via
+        // SqlTools.ResolveCallerAsync.
         //
-        // Bug-injection note: temporarily removing the lock here did NOT
-        // reliably reproduce a thrown exception in this sandboxed test
-        // environment across several runs (SQLite's own file-level locking
-        // apparently absorbs this volume of concurrent async-task access
-        // without surfacing a .NET-level exception here, unlike the original
-        // SqliteAuditSink bug this mirrors, which involved a background sync
-        // service on a genuinely separate thread). The fix matches the
-        // documented API contract and this project's own established pattern
-        // regardless - this test is a real regression/correctness check
-        // (concurrent calls must return the right data), just not one that
-        // independently proves the race via failed bug-injection the way
-        // this project's other fixes today were verified.
+        // Removing the lock does not reliably reproduce a thrown exception here, so this is a
+        // correctness check (concurrent calls must return the right data), not proof of the race.
         await using var store = OpenStore();
         var issued = await store.IssueAsync("alice", "alice_login");
 

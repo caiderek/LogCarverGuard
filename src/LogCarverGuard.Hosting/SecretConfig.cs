@@ -3,9 +3,8 @@ using Microsoft.Extensions.Configuration;
 namespace LogCarverGuard.Server;
 
 /// <summary>
-/// Reads a secret value the way 規劃書 三-4 actually specifies: "透過環境變數
-/// 或掛載的 secret 檔案". Until now Program.cs only implemented the env-var
-/// half - this adds the mounted-file half, following the same "_FILE"
+/// Reads a secret value from an environment variable, or from a mounted secret file named by the
+/// same variable with a "_FILE"
 /// suffix convention Docker Compose secrets and most container-aware .NET
 /// apps use (e.g. a Docker secret mounted at /run/secrets/x is referenced
 /// as X_FILE=/run/secrets/x, keeping the actual secret out of the

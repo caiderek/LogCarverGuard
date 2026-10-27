@@ -1,7 +1,6 @@
 using LogCarverGuard.Core;
 
-// Admin-side management for the API keys 規劃書 三-5 describes ("每人一把
-// 獨立 key,申請制(跟團隊負責人要)") - a CLI rather than a web admin UI or a
+// Admin-side management for the API keys (one key per person) - a CLI rather than a web admin UI or a
 // second HTTP surface on the server, for the same reason the proxy itself
 // uses SQLite instead of a real database service: one more thing exposed to
 // the network is one more thing to secure, and issuing/revoking keys is an

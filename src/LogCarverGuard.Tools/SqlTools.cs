@@ -8,7 +8,7 @@ using ModelContextProtocol.Server;
 namespace LogCarverGuard.Server.Tools;
 
 /// <summary>
-/// The MCP tool an AI agent calls to read and write - 規劃書 流程圖②/③.
+/// The MCP tool an AI agent calls to read and write.
 /// Who is calling, and on which connection, is the <see cref="ICallerSession"/>'s
 /// business: the central service checks an API key header and impersonates
 /// that person's login, the local host uses its configured connection.

@@ -15,7 +15,7 @@ namespace LogCarverGuard.Server;
 public sealed record GuardHostOptions(ClientIpAllowlist ClientIpAllowlist, ForwardedHeadersOptions? ForwardedHeaders);
 
 /// <summary>
-/// Everything that makes up the free edition's server, as two calls so a
+/// Everything that makes up the server, as two calls so a
 /// host (this one, or one that adds extensions on top) is a few lines.
 /// </summary>
 public static class LogCarverGuardHostingExtensions
@@ -23,7 +23,7 @@ public static class LogCarverGuardHostingExtensions
     public const string ServiceAccountConnectionStringKey = "LOGCARVERGUARD_SQLSERVER_CONNECTION_STRING";
 
     /// <summary>
-    /// 規劃書 三-4: the SQL Server service-account credential is injected via
+    /// The SQL Server service-account credential is injected via
     /// env var/mounted secret at startup, held only in memory, never written
     /// to disk. SecretConfig.Read supports both a direct env var and a
     /// *_FILE variable pointing at a mounted secret file.

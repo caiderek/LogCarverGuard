@@ -7,12 +7,10 @@ internal readonly record struct CliResult(int ExitCode, string StdOut, string St
 
 /// <summary>
 /// Runs the real built LogCarverGuard.Cli.dll as a child `dotnet` process
-/// and captures its exit code and output - same reasoning as the sibling
-/// LogCarverOffline.Cli.Tests project's CliRunner (the CLI's top-level-
-/// statements compile into unspeakable compiler-generated methods, so
-/// there's no in-process seam to call directly). Simpler than that
-/// project's version: this CLI is plain framework-dependent (no AOT/
-/// win-x64 publish - v1 targets Linux, see 規劃書 六), so it's invoked via
+/// and captures its exit code and output. The CLI's top-level
+/// statements compile into compiler-generated methods, so there is no in-process
+/// seam to call directly. This CLI is plain framework-dependent (no AOT /
+/// win-x64 publish; it targets Linux), so it is invoked via
 /// `dotnet <dll>` rather than a native per-RID exe, and it has no license
 /// file or temp-folder state to isolate - every test passes its own
 /// --apikeys-db path explicitly, which is isolation enough.
